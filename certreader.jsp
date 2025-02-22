@@ -1,7 +1,7 @@
 <%@ page import="java.security.cert.X509Certificate" %>
 <%@ page import="java.security.Principal" %>
+<%@ page import="javax.security.auth.x500.X500Principal" %>
 <%
-// Later in the page...
 // Get the client SSL certificates associated with the request
 X509Certificate certs[] = (X509Certificate[]) request.getAttribute("jakarta.servlet.request.X509Certificate");
 
@@ -14,23 +14,50 @@ if (certs == null || certs.length == 0) {
 X509Certificate principalCert = certs[0];
 
 // Get the Distinguished Name from the certificate
-// Ex/ "E=joeuser@endeca.com, CN=joeuser, O=Endeca,
-//     "L=Cambridge, S=MA, C=US"
-Principal principal = principalCert.getSubjectDN();
+X500Principal xPrincipal = principalCert.getSubjectX500Principal();
 
 // Extract the common name (CN)
-int start = principal.getName().indexOf("CN");
-String tmpName, name = "";
-if (start > 0) { 
-  tmpName = principal.getName().substring(start+3);
-  int end = tmpName.indexOf(",");
-  if (end > 0) {
-    name = tmpName.substring(0, end);
-  }
-  else {
-    name = tmpName; 
+String certFields[] = xPrincipal.toString().split(",");
+String certString = "";
+
+// Build a nice table for the data
+for(final String field : certFields) {
+  String keyVal[] = field.split("=");
+  if(keyVal != null && keyVal.length > 0) {
+    certString += "<tr><td>" + keyVal[0] +"</td><td>" + keyVal[1] + "</td></tr>";
   }
 }
 %>
-<%= name %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Cert Reader</title>
+  <style>
+    h1 {
+      font-family:Arial, Helvetica, sans-serif;
+      color: #000066;
+    }
+    body {
+      font-family:Arial, Helvetica, sans-serif;
+      color: #000066;
+    }
+    td {
+      padding: 5px;
+    }
+  </style>
+</head>
 
+<body>
+  <div>
+    <table border="1">
+      <% if(certString != null && certString != "") { %>
+      <%= "<h1>** Cert Discovered **</h1>" %>
+      <%= certString %>
+      <% } %>
+    </table>
+  </div>
+</body>
+
+</html>
